@@ -1,97 +1,118 @@
-version: '1'
+version: "1"
+
 metadata:
   description: "Enterprise Logging & Security Auditing Configuration"
   domain: "logging_domain"
   level_maturity_target: 3
-# --- Level 1 & 2: Centralized System & Application Logging ---
+
 centralized_log_system:
-  target: "log analytics" # Can also be "splunk", "elk", "elasticsearch", "datadog", or "azure monitor"
+  target: "Azure Monitor"
+  provider: "Log Analytics Workspace"
+  ships_to_centralized_system: true
+  storage_encrypted: true
+  retention_days: 90
+  integrity_protection_enabled: true
+  alerting_configured: true
+
   sources:
-    - name: "frontend-web"
-      type: "application"
-      description: "Aggregates client-side and web server events, routing logs to the centralized log system"
-    - name: "auth-service"
-      type: "security"
-      description: "Collects authentication and authorization audit logs for identity tracking"
-    - name: "database"
-      type: "audit"
-      description: "Captures access control and schema modifications"
-# --- Level 1 & 2: Secure Storage & WORM Protections ---
+    - name: frontend-web
+      type: application
+    - name: auth-service
+      type: security
+    - name: database
+      type: audit
+    - name: api-server
+      type: application
+
 security_and_integrity:
   encryption:
     enabled: true
-    algorithm: "AES-256"
+    algorithm: AES-256
+
   retention:
     days: 90
+
   integrity_protection:
-    write_once_read_many: true # Enforces WORM (Write-Once-Read-Many) policies
-    tamper_evident_logging: true # Detects log modification (e.g., hash chaining/signatures)
-    unauthorized_manipulation_protection: "ReadOnly log storage policy enforced. Modifications are prohibited."
-# --- Level 2: Log Correlation Context ---
+    write_once_read_many: true
+    tamper_evident_logging: true
+    unauthorized_manipulation_protection: true
+
 correlation_context:
   enabled: true
+  correlation_across_sources: true
+
   headers:
-    - "correlation_id"
-    - "trace_id"
-    - "x-request-id"
-    - "traceparent" # W3C context propagation compatibility
+    - correlation_id
+    - trace_id
+    - x-request-id
+    - traceparent
+
   log_format: "[%(asctime)s] [%(correlation_id)s] [%(levelname)s] %(message)s"
-# --- Level 2: Security Audit Events ---
+
 security_event_handlers:
   authentication:
     events:
-      - "login"
-      - "logout"
-      - "signin"
-      - "signout"
+      - login
+      - logout
+      - signin
+      - signout
 
   user_lifecycle:
     events:
-      - "user_created"
-      - "user_deleted"
-      - "user_changed"
-      - "user.updated"
-      - "role_changed"
-
-# --- Level 3: Log Analysis, Visualization & Alerting ---
+      - user_created
+      - user_deleted
+      - user_changed
+      - user.updated
+      - role_changed
 
 analysis_and_visualization:
+
   monitoring:
     enabled: true
-    provider: "Azure Monitor"
-
-  alerting:
-    enabled: true
-    provider: "PagerDuty"
-
-  incident_response:
-    enabled: true
-
- incident_analysis:
-    enabled: true
-    process: "SOC triage and root cause analysis"
-    root_cause_analysis: true
-    post_incident_review: true
-    playbooks:
-      - "Security Incident Playbook"
-      - "Brute Force Investigation"
+    provider: Azure Monitor
+    real_time_dashboard_available: true
+    keyword_search_supported: true
+    developer_access_to_app_logs: true
 
   gui_search:
     enabled: true
-    platform: "Kibana/Grafana GUI Dashboard"
-    developer_access_policy: "Developers have read-only access to application log namespaces."
+    platform: Kibana
+    developer_access_policy: ReadOnly
 
   attack_detection_rules:
     enabled: true
     rules:
-      - name: "Brute Force Detection"
-        trigger: "5 failed login or signin attempts within 60 seconds"
-      - name: "SQL Injection Alert"
-        trigger: "Detect regex patterns matching SQL syntax in URL/inputs"
+      - Brute Force Detection
+      - SQL Injection Detection
+      - Privilege Escalation
+      - Impossible Travel
+      - Credential Stuffing
 
-  incident_awareness:
-    alert_delivery:
-      provider: "PagerDuty"
-      channels:
-        - "security-alerts-slack-hook"
-      severity_threshold: "error"  
+  alerting:
+    enabled: true
+    provider: PagerDuty
+
+  incident_response:
+    enabled: true
+
+  incident_analysis:
+    enabled: true
+    process: SOC triage and root cause analysis
+    root_cause_analysis: true
+    post_incident_review: true
+
+  correlated_event_visualizations:
+    enabled: true
+    dashboards:
+      - Azure Workbook
+      - Kibana Dashboard
+      - Grafana Dashboard
+
+incident_awareness:
+  alert_delivery:
+    provider: PagerDuty
+    channels:
+      - Microsoft Teams
+      - Slack
+      - Email
+    severity_threshold: error
