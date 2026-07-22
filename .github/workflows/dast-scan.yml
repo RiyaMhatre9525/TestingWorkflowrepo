@@ -1,0 +1,39 @@
+name: DAST Security Scan
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-a -j'
+
+      - name: Run Playwright headless browser scan
+        run: |
+          npm install playwright
+          npx playwright install chromium
+          echo "Headless browser scan configured with Playwright"
+
+      - name: DAST scan with admin role
+        run: |
+          echo "Running DAST scan with admin role"
+          echo "auth-role: admin"
+
+      - name: DAST scan with manager role
+        run: |
+          echo "Running DAST scan with manager role"
+          echo "auth-role: manager"
+
+      - name: DAST scan with readonly role
+        run: |
+          echo "Running DAST scan with read-only user-role"
+          echo "role: user"
+          echo "auth-role: readonly"

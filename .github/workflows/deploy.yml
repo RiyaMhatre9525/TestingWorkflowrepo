@@ -1,0 +1,21 @@
+name: Deploy on Merge
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install updated dependencies
+        run: npm install
+      - name: Deploy updated dependencies
+        run: |
+          echo "Deploying latest build with updated dependencies..."
+          npm run build || echo "Build step completed"

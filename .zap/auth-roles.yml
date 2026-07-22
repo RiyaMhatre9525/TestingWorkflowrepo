@@ -1,0 +1,20 @@
+roles:
+  - name: admin
+    username: admin_user
+    password: "${ADMIN_PASSWORD}"
+    role: administrator
+
+  - name: user
+    username: regular_user
+    password: "${USER_PASSWORD}"
+    role: standard_user
+
+  - name: manager
+    username: manager_user
+    password: "${MANAGER_PASSWORD}"
+    role: manager
+
+  - name: readonly
+    username: readonly_user
+    password: "${READONLY_PASSWORD}"
+    role: read_only
