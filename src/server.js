@@ -3,6 +3,10 @@ const { applySecurityHeaders, applyCorrelationContext } = require("./middleware/
 const { findUserByEmail, createUser, logUserLogin, logUserLogout } = require("./db/models");
 
 const app = express();
+
+// Remove X-Powered-By header
+app.disable("x-powered-by");
+
 app.use(express.json());
 
 applySecurityHeaders(app);
