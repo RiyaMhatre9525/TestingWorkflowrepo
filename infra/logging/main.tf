@@ -27,7 +27,7 @@ variable "container_app_id" {
 
 variable "security_team_email" {
   type    = string
-  default = "security-oncall@cloudeorbit.example"
+  default = "security@example.com"
 }
 
 data "azurerm_resource_group" "rg" {
@@ -39,7 +39,7 @@ data "azurerm_resource_group" "rg" {
 # ---------------------------------------------------------
 
 resource "azurerm_log_analytics_workspace" "law" {
-  name                = "cloudeorbit-law"
+  name                = "example-law"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
@@ -47,10 +47,23 @@ resource "azurerm_log_analytics_workspace" "law" {
   # Log Analytics encrypts data at rest by default (Microsoft-managed keys)
 }
 
+resource "azurerm_log_analytics_solution" "security" {
+  solution_name         = "Security"
+  location              = data.azurerm_resource_group.rg.location
+  resource_group_name   = data.azurerm_resource_group.rg.name
+  workspace_resource_id = azurerm_log_analytics_workspace.law.id
+  workspace_name        = azurerm_log_analytics_workspace.law.name
+
+  plan {
+    publisher = "Microsoft"
+    product   = "OMSGallery/Security"
+  }
+}
+
 resource "azurerm_key_vault" "kv" {
-  name                       = "cloudeorbit-kv"
-  location                   = data.azurerm_resource_group.rg.location
-  resource_group_name        = data.azurerm_resource_group.rg.name
+  name                = "example-kv"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
   purge_protection_enabled   = true
@@ -84,12 +97,11 @@ resource "azurerm_key_vault_key" "log_key" {
 }
 
 resource "azurerm_storage_account" "log_archive" {
-  name                     = "cloudeorbitlogsarchive"
+  name                     = "examplelogsarchive"
   resource_group_name      = data.azurerm_resource_group.rg.name
   location                 = data.azurerm_resource_group.rg.location
   account_tier             = "Standard"
   account_replication_type = "GRS"
-
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
 
@@ -124,6 +136,32 @@ resource "azurerm_monitor_diagnostic_setting" "app_diag" {
   }
 }
 
+resource "azurerm_monitor_diagnostic_setting" "rg_diag" {
+  name                       = "rg-diagnostics"
+  target_resource_id         = data.azurerm_resource_group.rg.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+
+  enabled_log {
+    category = "Administrative"
+  }
+  
+  enabled_log {
+    category = "Policy"
+  }
+  
+  enabled_log {
+    category = "Recommendation"
+  }
+  
+  enabled_log {
+    category = "ServiceHealth"
+  }
+
+  metric {
+    category = "AllMetrics"
+  }
+}
+
 # ---------------------------------------------------------
 # Monitoring & alerting (closes "alerting_configured" gap)
 # ---------------------------------------------------------
@@ -153,6 +191,49 @@ resource "azurerm_monitor_activity_log_alert" "security_alert" {
   }
 }
 
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "failed_login_alert" {
+  name                = "failed-login-alert"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT5M"
+  severity             = 2
+
+  scopes = [
+    azurerm_log_analytics_workspace.law.id
+  ]
+
+  criteria {
+  query = <<QUERY
+  AzureActivity
+  | where ActivityStatus == "Failed"
+  QUERY
+
+    operator                = "GreaterThan"
+    threshold               = 5
+    time_aggregation_method = "Count"
+  }
+
+  action {
+    action_groups = [
+      azurerm_monitor_action_group.security_team.id
+    ]
+  }
+}
+
 output "log_analytics_workspace_id" {
   value = azurerm_log_analytics_workspace.law.id
+}
+
+output "action_group_id" {
+  value = azurerm_monitor_action_group.security_team.id
+}
+
+output "storage_account_id" {
+  value = azurerm_storage_account.log_archive.id
+}
+
+output "workspace_name" {
+  value = azurerm_log_analytics_workspace.law.name
 }
