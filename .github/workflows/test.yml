@@ -12,8 +12,6 @@ permissions:
   packages: write
   id-token: write
   security-events: write
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,6 +19,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
