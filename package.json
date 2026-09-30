@@ -4,7 +4,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "dompurify": "^3.0.6",
+    "dompurify": "^3.4.16",
     "sequelize": "^6.35.0",
     "express": "5.2.1",
     "lodash": "4.18.1",
